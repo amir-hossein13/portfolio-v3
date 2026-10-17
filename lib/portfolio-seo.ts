@@ -29,7 +29,7 @@ export function portfolioMetadata(profile: Profile): Metadata {
   };
 }
 
-export function portfolioStructuredData({ content, updatedAt }: PortfolioDocument) {
+export function portfolioStructuredData({ content, updatedAt }: Pick<PortfolioDocument, "content" | "updatedAt">) {
   const { profile } = content;
   const origin = siteOrigin(profile);
   const name = `${profile.firstName} ${profile.lastName}`;

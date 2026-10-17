@@ -1,22 +1,11 @@
 import PortfolioHero from "./portfolio-hero";
-import { Suspense } from "react";
-import { connection } from "next/server";
-import { readPortfolio } from "@/lib/portfolio-store";
+import { portfolioContent, portfolioUpdatedAt } from "@/lib/portfolio-data";
 import { publicPortfolio } from "@/lib/portfolio-model";
 import { portfolioMetadata, portfolioStructuredData } from "@/lib/portfolio-seo";
 
-export async function generateMetadata() {
-  await connection();
-  const { profile } = readPortfolio().content;
-  return portfolioMetadata(profile);
-}
-
-async function Portfolio() {
-  await connection();
-  const document = readPortfolio();
-  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(portfolioStructuredData(document)).replace(/</g, "\\u003c") }} /><PortfolioHero portfolio={publicPortfolio(document.content)} /></>;
-}
+export const metadata = portfolioMetadata(portfolioContent.profile);
 
 export default function HomePage() {
-  return <Suspense fallback={<main className="flex min-h-dvh items-center justify-center bg-white text-sm text-muted" aria-busy="true">Loading portfolio…</main>}><Portfolio /></Suspense>;
+  const document = { content: portfolioContent, updatedAt: portfolioUpdatedAt };
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(portfolioStructuredData(document)).replace(/</g, "\\u003c") }} /><PortfolioHero portfolio={publicPortfolio(document.content)} /></>;
 }

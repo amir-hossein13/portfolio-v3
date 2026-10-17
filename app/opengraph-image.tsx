@@ -1,14 +1,12 @@
 import { ImageResponse } from "next/og";
-import { connection } from "next/server";
-import { readPortfolio } from "@/lib/portfolio-store";
+import { portfolioContent } from "@/lib/portfolio-data";
 
 export const alt = "Portfolio — projects, development, and experience";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default async function OpenGraphImage() {
-  await connection();
-  const { profile } = readPortfolio().content;
+export default function OpenGraphImage() {
+  const { profile } = portfolioContent;
   return new ImageResponse(
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "#fafaf8", color: "#242424", borderBottom: "16px solid #242424" }}>
       <div style={{ display: "flex", fontSize: 22, letterSpacing: 5 }}>DEVELOPMENT / SELECTED WORK</div>

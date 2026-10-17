@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:backend": "node --test tests/backend.test.mjs"
+    "test": "node --test tests/static-portfolio.test.mjs"
   },
   "engines": { "node": ">=24.0.0" },
   "dependencies": {

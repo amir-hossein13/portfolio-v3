@@ -1,74 +1,56 @@
 # Amir.H Attarnia — Portfolio
 
-Next.js portfolio with a private content editor, SQLite persistence, and image uploads. Requires **Node.js 24 or newer**; SQLite uses Node's built-in `node:sqlite` module.
+A Next.js portfolio with GSAP section transitions and static, typed content. No database, admin account, uploads API, secrets, or writable filesystem are required. The homepage, sitemap, robots file, and social preview are generated at build time.
 
 ## Run locally
 
 ```powershell
 npm install
+npm run dev -- --port 3002
+```
+
+For a production preview:
+
+```powershell
 npm run build
 npm run start -- --port 3002
 ```
 
-For development, use `npm run dev -- --port 3002` instead.
+## Edit your information and projects
 
-- Public portfolio: `http://localhost:3002/`
-- Content editor: `http://localhost:3002/admin`
+All published content lives in **`lib/portfolio-data.ts`**:
 
-## First admin sign-in
+- `profile`: name, position, bio, availability, email, phone, WhatsApp, portrait, social links, and SEO settings.
+- `projects`: project cards in display order. Includes Standup.io, Omdehforoosh, Hatef Tejarat, and Khoodro24.
+- `experience`: companies, roles, dates, descriptions, and website links.
+- `services`: service titles and descriptions.
 
-1. Open `/admin`.
-2. Open `.data/setup-key.txt` locally and copy the generated key into the setup form.
-3. Choose your own password (at least 12 characters) and confirm it.
-4. Save the password in your password manager. Subsequent visits only need that password.
+To add a project, copy an existing project object, give it a unique `id`, set its title, description, website URL, and image, then redeploy. Set `published: false` to hide it. Use `category: "Projects"` or `"Explorations"`. The fallback preview can be `"wellness"`, `"editorial"`, `"dashboard"`, or `"mobile"` when no image is provided.
 
-There is no default account or default password. The setup key is generated per installation and stops working once the account exists. The key, database, uploads, and credentials are excluded from Git.
+Put project screenshots in **`public/projects/`** and reference them as `/projects/filename.png` (omit `public` in the URL). Existing screenshots have been copied from the old uploads folder so they ship with the deployment. Put your portrait in `public/` and set `profile.portrait.src`, for example `/portrait.webp`. The on-page photo picker is a temporary local preview, not an upload or saved change.
 
-## Update your content
+Update `portfolioUpdatedAt` when changing content. Every content or image change needs a new build/deployment. There is no `/admin` or content API anymore. The old `.data` directory is ignored by Git and untouched as a local backup; the application never reads it.
 
-The editor includes:
+## Vercel deployment
 
-- **Profile:** name, position, bio, availability, email, phone, WhatsApp, portrait, social links, and search/sharing settings.
-- **Projects:** covers, descriptions, disciplines, categories, website links, ordering, and draft/published status.
-- **Experience:** companies, roles, dates, descriptions, company websites, ordering, and draft/published status.
-- **Services:** titles, descriptions, fallback artwork, and ordering.
+Import this repository into Vercel using the Next.js preset, with `npm run build` as the build command. Use Node.js 24. No database connection or storage configuration is needed. Files in `public/projects/` must be committed with the source.
 
-Click **Save changes** to persist edits. Published items appear immediately on the next public page load; drafts remain private. Empty social links stay hidden. Uploaded images are stored on the server, not as temporary browser previews. Changing an image in the editor requires saving the content to make it public.
+Remove any old `PORTFOLIO_DATA_DIR` setting: it is no longer used. No filesystem writes occur when visitors open the portfolio.
 
-Your initial profile and Webino role are prefilled with the supplied dates, `Oct 2025 – Jan 2026`. Your bio and projects are intentionally empty until you add them.
+## Search engine setup — when your domain is ready
 
-## Storage and hosting
+Set `profile.siteUrl` in `lib/portfolio-data.ts` to the public origin, or set `PORTFOLIO_ORIGIN` in the deployment environment (takes precedence), then rebuild. Leave this empty until your production URL is chosen, as requested. Until a non-local origin is configured, indexing stays disabled and the sitemap is empty.
 
-Data is stored in `.data/portfolio.sqlite`; images are stored in `.data/uploads/`. This is a persistent Node server application. Deploy it to a host with a **writable persistent volume** and Node 24+. Ephemeral/serverless filesystems, including a default Vercel deployment, will not preserve SQLite or uploads. For those platforms, replace this storage adapter with a hosted database and object storage first.
+SEO includes server-rendered HTML, canonical links, titles and descriptions, Open Graph/X cards, an automatically generated 1200×630 sharing image, Person/ProfilePage/WebSite JSON-LD, `/robots.txt`, and `/sitemap.xml`. The sitemap contains the homepage and published images, not hash fragments or external project websites. Customize `profile.seoTitle` and `profile.seoDescription` if needed; otherwise they are derived from your profile.
 
-Optional environment variables:
-
-| Variable | Purpose |
-| --- | --- |
-| `PORTFOLIO_DATA_DIR` | Absolute path to the persistent storage folder; defaults to `.data` in the project directory. |
-| `PORTFOLIO_ORIGIN` | Canonical origin, such as `https://your-domain.com`, for same-origin write validation and secure cookies behind a reverse proxy. |
-| `GOOGLE_SITE_VERIFICATION` | Optional Google Search Console verification token. |
-
-Use HTTPS on a public deployment. When `PORTFOLIO_ORIGIN` uses HTTPS, admin cookies use the Secure flag. Mutating endpoints also enforce same-origin requests, authenticated sessions, input limits, and server-side validation. Passwords use salted scrypt hashes; sessions are stored as token hashes and expire after seven days. Incorrect sign-in attempts are rate limited.
-
-## Search engine setup
-
-In **Admin → Profile → Search & sharing**, set the live website URL and optionally customize the search title and description. `PORTFOLIO_ORIGIN`, when set, overrides the editor's domain and should match the public HTTPS origin. Until a non-local domain is configured, the homepage is `noindex`, robots disallows crawling, and the sitemap contains no URLs; no fake production domain is emitted.
-
-The homepage uses server-rendered content, Next.js metadata, a canonical URL, Open Graph and X cards, an automatically generated 1200×630 sharing image, and Person/ProfilePage/WebSite JSON-LD. `/sitemap.xml` uses the saved content modification date and published images. `/robots.txt` advertises the sitemap while excluding admin and data endpoints. Admin pages and API endpoints also send noindex headers. Draft content never enters public structured data or the sitemap. Sections share one URL, so the sitemap correctly lists the homepage rather than hash fragments or nonexistent pages.
-
-After deploying, verify the live URL, `/robots.txt`, `/sitemap.xml`, and sharing preview. Add the domain in Google Search Console and submit `/sitemap.xml`. Set `GOOGLE_SITE_VERIFICATION` if using HTML-tag verification. This implements technical SEO; search engines decide indexing and ranking. Add genuine project descriptions, useful image descriptions, and your own bio through the editor for stronger content.
-
-## Backups
-
-The editor's **Download content backup** exports the saved profile and content as JSON. It does not include image bytes. For a complete backup, stop the server, copy the entire `.data` folder (or your configured data folder), and restart. Restore that folder on the same Node runtime before starting the app. Do not commit it to the repository.
+Optional `GOOGLE_SITE_VERIFICATION` enables Google's HTML-tag verification. After configuring a live domain and redeploying, verify the site in Search Console and submit `/sitemap.xml`. Search engines control indexing and ranking.
 
 ## Checks
 
 ```powershell
 npm run lint
 npm run build
-npm run test:backend
+npm test
 ```
 
-The backend integration test starts a production server with a separate temporary database. It checks authorization, one-time setup, hashed credentials, draft isolation, validation, stale-edit protection, image uploads, publication, ordering, persistence after restart, session revocation/expiry, and login rate limiting. It never changes your real portfolio data.
+The test suite checks the static content, four live-project URLs, bundled screenshots, contact links, SEO output, removed backend routes, and production page rendering without a database.
