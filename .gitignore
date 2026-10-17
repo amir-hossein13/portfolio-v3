@@ -19,6 +19,8 @@
 
 # production
 /build
+/.data/
+/test-results/
 
 # misc
 .DS_Store
