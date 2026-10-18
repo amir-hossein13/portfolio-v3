@@ -18,7 +18,7 @@ npm run start -- --port 3002
 
 ## Edit your information and projects
 
-All published content lives in **`lib/portfolio-data.ts`**:
+All published content lives in **`data/portfolio.ts`**:
 
 - `profile`: name, position, bio, availability, email, phone, WhatsApp, portrait, social links, and SEO settings.
 - `projects`: project cards in display order. Includes Standup.io, Omdehforoosh, Hatef Tejarat, and Khoodro24.
@@ -39,7 +39,7 @@ Remove any old `PORTFOLIO_DATA_DIR` setting: it is no longer used. No filesystem
 
 ## Search engine setup — when your domain is ready
 
-Set `profile.siteUrl` in `lib/portfolio-data.ts` to the public origin, or set `PORTFOLIO_ORIGIN` in the deployment environment (takes precedence), then rebuild. Leave this empty until your production URL is chosen, as requested. Until a non-local origin is configured, indexing stays disabled and the sitemap is empty.
+Set `profile.siteUrl` in `data/portfolio.ts` to the public origin, or set `PORTFOLIO_ORIGIN` in the deployment environment (takes precedence), then rebuild. Leave this empty until your production URL is chosen, as requested. Until a non-local origin is configured, indexing stays disabled and the sitemap is empty.
 
 SEO includes server-rendered HTML, canonical links, titles and descriptions, Open Graph/X cards, an automatically generated 1200×630 sharing image, Person/ProfilePage/WebSite JSON-LD, `/robots.txt`, and `/sitemap.xml`. The sitemap contains the homepage and published images, not hash fragments or external project websites. Customize `profile.seoTitle` and `profile.seoDescription` if needed; otherwise they are derived from your profile.
 
@@ -54,3 +54,18 @@ npm test
 ```
 
 The test suite checks the static content, four live-project URLs, bundled screenshots, contact links, SEO output, removed backend routes, and production page rendering without a database.
+
+## Code organization
+
+- `app/`: Next.js routes, layout, global design tokens, and metadata endpoints.
+- `components/portfolio/sections/`: one component per page section; each owns its interaction state.
+- `components/portfolio/`: shared controls, social links, project cards, dialog, and the page composition.
+- `components/portfolio/previews/`: fallback project artwork.
+- `hooks/`: GSAP section navigation and animation behavior.
+- `data/`: your editable content object and section definitions.
+- `types/`: shared content types.
+- `lib/`: public-content selection and server-only SEO helpers.
+- `public/`: portrait and project screenshots.
+- `tests/`: production checks.
+
+Use `npm run format` to format source files and `npm run format:check` to check formatting. Keep two-space indentation, double quotes, semicolons, and descriptive component names. Keep section-specific state and handlers alongside their section instead of adding them to the page component.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { ProjectPreview } from "./portfolio-visuals";
+import { ProjectPreview } from "./project-preview";
 
 const backdrops: Record<string, string> = {
   wellness: "#211821",
@@ -37,9 +37,19 @@ export function ProjectCardPreview({ kind }: { kind: string }) {
     return () => observer.disconnect();
   }, [height]);
 
-  return <div ref={stageRef} aria-hidden="true" className="relative h-full w-full overflow-hidden" style={{ backgroundColor: backdrops[kind] || backdrops.mobile }}>
-    <div className="absolute top-1/2 left-1/2 w-[600px] origin-center [transform:translate(-50%,-50%)_scale(var(--preview-scale,.5))]" style={{ height }}>
-      <ProjectPreview kind={kind} />
+  return (
+    <div
+      ref={stageRef}
+      aria-hidden="true"
+      className="relative h-full w-full overflow-hidden"
+      style={{ backgroundColor: backdrops[kind] || backdrops.mobile }}
+    >
+      <div
+        className="absolute top-1/2 left-1/2 w-[600px] origin-center [transform:translate(-50%,-50%)_scale(var(--preview-scale,.5))]"
+        style={{ height }}
+      >
+        <ProjectPreview kind={kind} />
+      </div>
     </div>
-  </div>;
+  );
 }

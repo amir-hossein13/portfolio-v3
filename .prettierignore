@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.data/
+.codex/
+.agents/
+.git/
+.env*
+public/
+package-lock.json
+AGENTS.md
+next-env.d.ts
