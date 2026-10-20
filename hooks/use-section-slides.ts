@@ -1,273 +1,148 @@
 "use client";
 
-import { useCallback, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
-import { useGSAP } from "@gsap/react";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger, ScrollToPlugin);
-// Finish navigation on elapsed time, even when a background tab throttles frames.
+gsap.registerPlugin(ScrollToPlugin);
+// Finish button navigation even when a background tab throttles frames.
 gsap.ticker.lagSmoothing(0);
 
 export function useSectionSlides(pageRef: RefObject<HTMLElement | null>) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const currentRef = useRef(0);
-  const stableSlideRef = useRef(0);
   const panelsRef = useRef<HTMLElement[]>([]);
-  const trackingRef = useRef<ScrollTrigger | null>(null);
-  const snappingRef = useRef<ScrollTrigger | null>(null);
   const navigationTweenRef = useRef<gsap.core.Tween | null>(null);
-  const destinationRef = useRef<number | null>(null);
-  const reducedRef = useRef(false);
 
   const goToSlide = useCallback(
-    (index: number) => {
+    (index: number, animate = false) => {
       const root = pageRef.current;
       const panels = panelsRef.current;
       if (!root || !panels.length) return;
 
       const destination = Math.max(0, Math.min(index, panels.length - 1));
       const target = panels[destination];
-      destinationRef.current = destination;
-      snappingRef.current?.disable(false);
       navigationTweenRef.current?.kill();
-      root.dataset.transition = "running";
+      navigationTweenRef.current = null;
 
+      const finishNavigation = () => {
+        navigationTweenRef.current = null;
+        root.dataset.transition = "idle";
+        setCurrentSlide(destination);
+        window.history.replaceState(null, "", `#${target.id}`);
+        target.focus({ preventScroll: true });
+      };
+
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!animate || reducedMotion) {
+        target.scrollIntoView({ behavior: "instant", block: "start" });
+        finishNavigation();
+        return;
+      }
+
+      root.dataset.transition = "running";
       navigationTweenRef.current = gsap.to(window, {
         scrollTo: { y: target, autoKill: false },
-        duration: reducedRef.current ? 0 : 1.05,
+        duration: 1.05,
         ease: "power3.inOut",
         overwrite: "auto",
-        onComplete: () => {
-          root.dataset.transition = "idle";
-          destinationRef.current = null;
-          navigationTweenRef.current = null;
-          currentRef.current = destination;
-          stableSlideRef.current = destination;
-          setCurrentSlide(destination);
-          window.history.replaceState(null, "", `#${target.id}`);
-          target.focus({ preventScroll: true });
-          snappingRef.current?.enable(true, false);
-          snappingRef.current?.update();
-          trackingRef.current?.update();
-        },
+        onComplete: finishNavigation,
       });
     },
     [pageRef],
   );
 
-  useGSAP(
-    (_context, contextSafe) => {
-      const root = pageRef.current;
-      const safe = contextSafe;
-      if (!root || !safe) return;
-      const panels = gsap.utils.toArray<HTMLElement>("[data-slide]", root);
-      const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-      let resizeFrame = 0;
-      let initialFrame = 0;
-      panelsRef.current = panels;
-      reducedRef.current = motionPreference.matches;
+  useEffect(() => {
+    const root = pageRef.current;
+    if (!root) return;
 
-      trackingRef.current = ScrollTrigger.create({
-        id: "portfolio-slide-position",
-        trigger: root,
-        start: "top top",
-        end: "max",
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          const index = Math.round(self.progress * (panels.length - 1));
-          if (Math.abs(panels[index].getBoundingClientRect().top) <= 2)
-            stableSlideRef.current = index;
-          if (index !== currentRef.current) {
-            currentRef.current = index;
-            setCurrentSlide(index);
-          }
-        },
+    const panels = Array.from(root.querySelectorAll<HTMLElement>("[data-slide]"));
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let scrollFrame = 0;
+    panelsRef.current = panels;
+    root.dataset.scrollMode = "native";
+    root.dataset.transition = "idle";
+
+    // Track the visible section without moving the page or animating its content.
+    const updatePosition = () => {
+      scrollFrame = 0;
+      const readingLine = window.innerHeight * 0.4;
+      let index = 0;
+
+      panels.forEach((panel, panelIndex) => {
+        if (panel.getBoundingClientRect().top <= readingLine) index = panelIndex;
       });
 
-      const createSnap = () => {
-        if (reducedRef.current || snappingRef.current) return;
-        snappingRef.current = ScrollTrigger.create({
-          id: "portfolio-slide-snap",
-          trigger: root,
-          start: "top top",
-          end: "max",
-          invalidateOnRefresh: true,
-          snap: {
-            snapTo: 1 / (panels.length - 1),
-            directional: true,
-            inertia: false,
-            delay: 0.2,
-            duration: { min: 0.45, max: 0.8 },
-            ease: "power3.inOut",
-          },
-        });
-      };
-      createSnap();
+      setCurrentSlide(index);
+    };
 
-      const initialIndex = panels.findIndex((panel) => `#${panel.id}` === window.location.hash);
-      if (initialIndex > 0) {
-        currentRef.current = initialIndex;
-        stableSlideRef.current = initialIndex;
-        setCurrentSlide(initialIndex);
-        initialFrame = window.requestAnimationFrame(
-          safe(() => {
-            gsap.set(window, { scrollTo: { y: panels[initialIndex], autoKill: false } });
-            trackingRef.current?.update();
-          }),
-        );
+    const handleScroll = () => {
+      if (!scrollFrame) scrollFrame = window.requestAnimationFrame(updatePosition);
+    };
+
+    const cancelNavigation = () => {
+      if (!navigationTweenRef.current) return;
+      navigationTweenRef.current.kill();
+      navigationTweenRef.current = null;
+      root.dataset.transition = "idle";
+    };
+
+    const handleResize = () => {
+      cancelNavigation();
+      handleScroll();
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (
+        ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " ", "Tab"].includes(
+          event.key,
+        )
+      ) {
+        cancelNavigation();
       }
+    };
 
-      if (!reducedRef.current) {
-        panels.forEach((panel) => {
-          const content = panel.querySelectorAll("[data-enter], [data-reveal]");
-          gsap.from(content, {
-            y: 30,
-            opacity: 0,
-            duration: 0.85,
-            stagger: 0.065,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: panel,
-              start: "top 65%",
-              toggleActions: "play none play reverse",
-            },
-          });
-        });
-      }
+    const handleMotionPreference = (event: MediaQueryListEvent) => {
+      if (event.matches) navigationTweenRef.current?.progress(1);
+    };
 
-      // Actual input cancels a transition; scroll rounding must not cancel it.
-      const cancelNavigation = () => {
-        if (!navigationTweenRef.current) return;
-        navigationTweenRef.current.kill();
-        navigationTweenRef.current = null;
-        destinationRef.current = null;
-        root.dataset.transition = "interrupted";
-        snappingRef.current?.enable(true, false);
-        snappingRef.current?.update();
-      };
+    const handleLink = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return;
+      const anchor =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>('a[href^="#"]')
+          : null;
+      if (!anchor) return;
 
-      const alignAfterResize = safe(() => {
-        resizeFrame = 0;
-        const targetIndex = destinationRef.current ?? stableSlideRef.current;
-        const target = panels[targetIndex];
-        if (!target) return;
-        gsap.killTweensOf(window);
-        snappingRef.current?.disable(false);
-        gsap.set(window, { scrollTo: { y: target, autoKill: false } });
-        if (destinationRef.current !== null) {
-          window.history.replaceState(null, "", `#${target.id}`);
-          currentRef.current = destinationRef.current;
-          stableSlideRef.current = destinationRef.current;
-          setCurrentSlide(destinationRef.current);
-          destinationRef.current = null;
-          navigationTweenRef.current = null;
-          root.dataset.transition = "idle";
-        }
-        ScrollTrigger.refresh();
-        snappingRef.current?.enable(true, false);
-        snappingRef.current?.update();
-        trackingRef.current?.update();
-        currentRef.current = targetIndex;
-        stableSlideRef.current = targetIndex;
-        setCurrentSlide(targetIndex);
-      });
+      const index = panels.findIndex((panel) => `#${panel.id}` === anchor.getAttribute("href"));
+      if (index < 0) return;
+      event.preventDefault();
+      goToSlide(index);
+    };
 
-      const handleResize = () => {
-        window.cancelAnimationFrame(resizeFrame);
-        resizeFrame = window.requestAnimationFrame(alignAfterResize);
-      };
+    handleScroll();
+    root.addEventListener("click", handleLink);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("wheel", cancelNavigation, { passive: true });
+    window.addEventListener("touchstart", cancelNavigation, { passive: true });
+    window.addEventListener("keydown", handleKey);
+    motionPreference.addEventListener("change", handleMotionPreference);
 
-      const handleMotionPreference = safe((event: MediaQueryListEvent) => {
-        reducedRef.current = event.matches;
-        if (event.matches) {
-          navigationTweenRef.current?.progress(1);
-          snappingRef.current?.kill();
-          snappingRef.current = null;
-          root.querySelectorAll<HTMLElement>("[data-enter], [data-reveal]").forEach((element) => {
-            gsap.set(element, { clearProps: "opacity,transform" });
-          });
-        } else {
-          createSnap();
-        }
-      });
-
-      const handleLink = (event: MouseEvent) => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
-          return;
-        const anchor =
-          event.target instanceof Element
-            ? event.target.closest<HTMLAnchorElement>('a[href^="#"]')
-            : null;
-        if (!anchor) return;
-        const index = panels.findIndex((panel) => `#${panel.id}` === anchor.getAttribute("href"));
-        if (index < 0) return;
-        event.preventDefault();
-        goToSlide(index);
-      };
-
-      const handleKey = safe((event: KeyboardEvent) => {
-        if (root.querySelector("dialog[open]") || event.metaKey || event.ctrlKey || event.altKey)
-          return;
-        const target = event.target instanceof HTMLElement ? event.target : null;
-        if (target?.closest("input, textarea, select, [contenteditable=true]")) return;
-        if (event.code === "Space" && target?.closest("button, a")) return;
-        const forward =
-          ["ArrowDown", "PageDown"].includes(event.key) ||
-          (event.code === "Space" && !event.shiftKey);
-        const backward =
-          ["ArrowUp", "PageUp"].includes(event.key) || (event.code === "Space" && event.shiftKey);
-        if (!forward && !backward && event.key !== "Home" && event.key !== "End") return;
-
-        const panel = panels[currentRef.current];
-        const remaining = panel.scrollHeight - panel.clientHeight - panel.scrollTop;
-        // On short screens, read the rest of this section before advancing.
-        if ((forward && remaining > 2) || (backward && panel.scrollTop > 2)) {
-          event.preventDefault();
-          gsap.to(panel, {
-            scrollTo: { y: panel.scrollTop + (forward ? 1 : -1) * panel.clientHeight * 0.75 },
-            duration: reducedRef.current ? 0 : 0.35,
-            overwrite: "auto",
-          });
-          return;
-        }
-
-        event.preventDefault();
-        goToSlide(
-          event.key === "Home"
-            ? 0
-            : event.key === "End"
-              ? panels.length - 1
-              : currentRef.current + (forward ? 1 : -1),
-        );
-      });
-
-      root.addEventListener("click", handleLink);
-      window.addEventListener("keydown", handleKey);
-      window.addEventListener("resize", handleResize);
-      window.addEventListener("wheel", cancelNavigation, { passive: true });
-      window.addEventListener("touchstart", cancelNavigation, { passive: true });
-      motionPreference.addEventListener("change", handleMotionPreference);
-      return () => {
-        root.removeEventListener("click", handleLink);
-        window.removeEventListener("keydown", handleKey);
-        window.removeEventListener("resize", handleResize);
-        window.removeEventListener("wheel", cancelNavigation);
-        window.removeEventListener("touchstart", cancelNavigation);
-        motionPreference.removeEventListener("change", handleMotionPreference);
-        window.cancelAnimationFrame(resizeFrame);
-        window.cancelAnimationFrame(initialFrame);
-        navigationTweenRef.current?.kill();
-        panelsRef.current = [];
-        trackingRef.current = null;
-        snappingRef.current = null;
-        navigationTweenRef.current = null;
-        destinationRef.current = null;
-      };
-    },
-    { scope: pageRef, dependencies: [goToSlide] },
-  );
+    return () => {
+      root.removeEventListener("click", handleLink);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("wheel", cancelNavigation);
+      window.removeEventListener("touchstart", cancelNavigation);
+      window.removeEventListener("keydown", handleKey);
+      motionPreference.removeEventListener("change", handleMotionPreference);
+      window.cancelAnimationFrame(scrollFrame);
+      navigationTweenRef.current?.kill();
+      navigationTweenRef.current = null;
+      panelsRef.current = [];
+    };
+  }, [pageRef, goToSlide]);
 
   return { currentSlide, goToSlide };
 }

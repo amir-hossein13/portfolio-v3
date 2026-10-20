@@ -74,12 +74,29 @@
   --color-display: #252523;
   --font-sans: var(--font-body);
   --font-display: var(--font-heading);
+  --font-latin: var(--font-geist-sans), "Helvetica Neue", sans-serif;
   --font-mono: var(--font-code);
   --shadow-floating: var(--shadow-md);
   --shadow-availability: 0 12px 22px rgb(27 27 26 / 7%);
   --shadow-control: inset 0 2px 5px rgb(255 255 255 / 9%), 0 4px 7px rgb(27 27 26 / 20%);
   --ease-portfolio: var(--ease-out);
   --breakpoint-hero: 56.3125rem;
+}
+
+html[lang="ar"] {
+  --font-body: var(--font-arabic), var(--font-geist-sans), Tahoma, sans-serif;
+  --font-heading: var(--font-arabic), var(--font-geist-sans), Tahoma, sans-serif;
+  --tracking-tight: 0;
+  --leading-heading: 1.4;
+}
+
+/* Arabic joins must not inherit the Latin display's negative letter spacing. */
+html[lang="ar"] :is(h2, h3, p, button, a) {
+  letter-spacing: normal;
+}
+
+html[lang="ar"] :is(h2, h3) {
+  line-height: 1.5;
 }
 
 @layer base {

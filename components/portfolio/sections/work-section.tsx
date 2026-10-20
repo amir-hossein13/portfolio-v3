@@ -1,12 +1,11 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { ScrollToPlugin } from "gsap/ScrollToPlugin";
+import { AiOutlineArrowLeft, AiOutlineArrowRight } from "react-icons/ai";
 import type { Project } from "@/types/portfolio";
 import { ArrowIcon } from "../ui";
 import { ProjectCard } from "../project-card";
-
-gsap.registerPlugin(ScrollToPlugin);
+import { usePortfolioLanguage } from "../portfolio-language";
 
 interface WorkSectionProps {
   projects: Project[];
@@ -16,8 +15,15 @@ type ProjectFilter = "All" | Project["category"];
 const projectFilters: ProjectFilter[] = ["All", "Projects", "Explorations"];
 
 export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProps) {
+  const { locale, copy } = usePortfolioLanguage();
   const [filter, setFilter] = useState<ProjectFilter>("All");
   const projectTrackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const track = projectTrackRef.current;
+    return () => {
+      if (track) gsap.killTweensOf(track);
+    };
+  }, []);
   const projects = allProjects.filter((project) => filter === "All" || project.category === filter);
 
   function scrollProjects(direction: number) {
@@ -26,13 +32,21 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
     if (!track || !cards?.length) return;
     const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 20;
     const step = cards[0].offsetWidth + gap;
-    const current = Math.round(track.scrollLeft / step);
+    const sign = locale === "ar" ? -1 : 1;
+    const current = Math.round(Math.abs(track.scrollLeft) / step);
     const next = Math.max(0, Math.min(current + direction, cards.length - 1));
+    gsap.killTweensOf(track);
+    track.style.scrollSnapType = "none";
+    const restoreSnap = () => {
+      track.style.removeProperty("scroll-snap-type");
+    };
     gsap.to(track, {
-      scrollTo: { x: next * step, autoKill: false },
+      scrollLeft: sign * next * step,
       duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 0.55,
       ease: "power3.inOut",
       overwrite: "auto",
+      onComplete: restoreSnap,
+      onInterrupt: restoreSnap,
     });
   }
 
@@ -41,7 +55,7 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
       data-slide
       tabIndex={-1}
       id="work"
-      className="relative flex h-dvh flex-col [justify-content:safe_center] overflow-y-auto bg-white px-6 pt-[clamp(24px,5dvh,56px)] pb-20 focus-visible:outline-none sm:px-10 hero:px-[8%]"
+      className="relative flex min-h-svh hero:h-dvh flex-col [justify-content:safe_center] hero:overflow-y-auto bg-white px-6 pt-[clamp(24px,5dvh,56px)] pb-20 focus-visible:outline-none sm:px-10 hero:px-[8%]"
       aria-labelledby="work-title"
     >
       <div data-reveal className="relative mb-6 shrink-0 pt-6 text-center hero:mb-5 hero:pt-3">
@@ -49,20 +63,24 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
           className="pointer-events-none absolute inset-x-0 -top-2 overflow-hidden text-[min(11cqw,12dvh)] leading-none font-semibold tracking-[.06em] text-[#f6f6f6]"
           aria-hidden="true"
         >
-          PORTFOLIO
+          {copy.work.backdrop}
         </span>
         <h2
           id="work-title"
           className="relative m-0 font-sans text-[clamp(26px,3.6cqw,48px)] leading-tight font-medium tracking-[-.04em]"
         >
-          /SELECTED WORK
+          {copy.work.title}
         </h2>
       </div>
       <div
         data-reveal
         className="mb-6 flex shrink-0 flex-wrap items-center justify-between gap-4 hero:mb-5"
       >
-        <div className="flex items-center gap-5 sm:gap-7" role="group" aria-label="Filter projects">
+        <div
+          className="flex items-center gap-5 sm:gap-7"
+          role="group"
+          aria-label={copy.work.filter}
+        >
           {projectFilters.map((category) => (
             <button
               key={category}
@@ -74,7 +92,7 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
               }}
               className={`cursor-pointer py-2 text-[12px] transition-colors sm:text-[14px] ${filter === category ? "text-foreground" : "text-[#909090] hover:text-foreground"}`}
             >
-              {category}
+              {copy.work.categories[category]}
             </button>
           ))}
         </div>
@@ -83,11 +101,11 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
           type="button"
           onClick={() => setFilter("All")}
         >
-          View All Work <ArrowIcon className="size-[15px]" />
+          {copy.work.viewAll} <ArrowIcon className="size-[15px]" />
         </button>
       </div>
       <p className="sr-only" aria-live="polite">
-        {projects.length} projects shown
+        {projects.length} {copy.work.shown}
       </p>
       {!projects.length && (
         <div
@@ -95,14 +113,10 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
           className="flex min-h-[260px] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 text-center"
         >
           <h3 className="mb-3 text-[22px] font-medium">
-            {filter === "All"
-              ? "New projects are on the way."
-              : "No projects in this category yet."}
+            {filter === "All" ? copy.work.emptyTitle : copy.work.emptyCategory}
           </h3>
           <p className="m-0 max-w-[380px] text-sm leading-relaxed text-muted">
-            {filter === "All"
-              ? "A selection of my work will be shared here soon."
-              : "Choose All to see the rest of the work."}
+            {filter === "All" ? copy.work.emptyDescription : copy.work.chooseAll}
           </p>
         </div>
       )}
@@ -117,17 +131,21 @@ export function WorkSection({ projects: allProjects, onSelect }: WorkSectionProp
       </div>
       {projects.length > 1 && (
         <div className="mt-4 flex shrink-0 items-center justify-between text-[11px] text-muted hero:hidden">
-          <span>Swipe to explore</span>
+          <span>{copy.work.swipe}</span>
           <div className="flex gap-2">
             {[-1, 1].map((direction) => (
               <button
                 key={direction}
                 type="button"
-                aria-label={direction < 0 ? "Previous project" : "Next project"}
-                className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-border"
+                aria-label={direction < 0 ? copy.work.previous : copy.work.next}
+                className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-border rtl:rotate-180"
                 onClick={() => scrollProjects(direction)}
               >
-                <span aria-hidden="true">{direction < 0 ? "←" : "→"}</span>
+                {direction < 0 ? (
+                  <AiOutlineArrowLeft className="size-4" aria-hidden="true" focusable="false" />
+                ) : (
+                  <AiOutlineArrowRight className="size-4" aria-hidden="true" focusable="false" />
+                )}
               </button>
             ))}
           </div>

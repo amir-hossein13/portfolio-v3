@@ -12,7 +12,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
     .filter(Boolean)
     .map((src) => new URL(src, origin).href);
-  return [
-    { url: `${origin}/`, lastModified: portfolioUpdatedAt, ...(images.length ? { images } : {}) },
-  ];
+  return ["/", "/ar"].map((path) => ({
+    url: `${origin}${path}`,
+    lastModified: portfolioUpdatedAt,
+    alternates: { languages: { en: `${origin}/`, ar: `${origin}/ar` } },
+    ...(images.length ? { images } : {}),
+  }));
 }

@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 import { portfolioContent } from "../data/portfolio.ts";
 import { slides } from "../data/sections.ts";
 import { getPublicPortfolio } from "../lib/portfolio.ts";
+import { english } from "../data/locales/en.ts";
+import { arabic } from "../data/locales/ar.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const urls = [
@@ -16,6 +18,17 @@ const urls = [
   "https://hatef-project-v2.vercel.app/",
   "https://khoodro24.com/",
 ];
+
+test("Arabic covers every English interface label", () => {
+  function checkTranslations(source, translation) {
+    assert.deepEqual(Object.keys(translation).sort(), Object.keys(source).sort());
+    for (const [key, value] of Object.entries(source)) {
+      if (typeof value === "object") checkTranslations(value, translation[key]);
+      else assert.ok(typeof translation[key] === "string" && translation[key].trim());
+    }
+  }
+  checkTranslations(english, arabic);
+});
 
 test("public content excludes drafts without changing the editable object", () => {
   const content = structuredClone(portfolioContent);
@@ -97,6 +110,13 @@ test(
       }
       assert.equal(response?.status, 200, logs);
       const html = await response.text();
+      assert.match(html, /<html[^>]+lang="en"[^>]+dir="ltr"/);
+      assert.ok(html.includes('href="/ar#home"'));
+      const header = html.match(/<header[\s\S]*?<\/header>/)[0];
+      assert.ok(header.includes("Choose language"));
+      assert.ok(header.includes("/flags/gb.svg") && header.includes("/flags/ae.svg"));
+      const sectionBar = html.match(/<nav aria-label="Section navigation"[\s\S]*?<\/nav>/)[0];
+      assert.ok(!sectionBar.includes("Choose language"));
       for (const project of portfolioContent.projects) {
         assert.ok(html.includes(project.title));
         assert.ok(html.includes(project.url));
@@ -109,10 +129,39 @@ test(
       );
       assert.equal(schema["@graph"][0].telephone, "+989934904062");
       assert.ok(html.includes("summary_large_image"));
+      const arabicResponse = await fetch(`${origin}/ar`);
+      assert.equal(arabicResponse.status, 200);
+      const arabicHtml = await arabicResponse.text();
+      assert.match(arabicHtml, /<html[^>]+lang="ar"[^>]+dir="rtl"/);
+      for (const text of [
+        "مطوّر ويب متكامل",
+        "أعمال مختارة",
+        "الخبرة المهنية",
+        "أكتوبر 2025",
+        "زيارة المشروع",
+        "واتساب",
+      ])
+        assert.ok(arabicHtml.includes(text), `Missing Arabic translation: ${text}`);
+      assert.ok(arabicHtml.includes('href="/#home"'));
+      assert.ok(arabicHtml.includes('href="tel:+989934904062"'));
+      assert.ok(arabicHtml.includes('content="ar_AR"'));
+      const arabicSchema = JSON.parse(
+        arabicHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1],
+      );
+      assert.equal(arabicSchema["@graph"][1].inLanguage, "ar");
+      for (const project of portfolioContent.projects) {
+        assert.ok(arabicHtml.includes(project.title));
+        assert.ok(arabicHtml.includes(project.url));
+      }
       for (const project of portfolioContent.projects) {
         const image = await fetch(origin + project.image);
         assert.equal(image.status, 200);
         assert.match(image.headers.get("content-type"), /image\//);
+      }
+      for (const flag of ["gb", "ae"]) {
+        const response = await fetch(`${origin}/flags/${flag}.svg`);
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get("content-type"), /image\/svg\+xml/);
       }
       for (const route of [
         "/admin",
@@ -139,6 +188,7 @@ test(
         prerenders.routes["/"],
         "Homepage must be prerendered, not dependent on a runtime database.",
       );
+      assert.ok(prerenders.routes["/ar"], "Arabic must also be statically generated.");
       assert.doesNotMatch(logs, /SQLITE|EROFS|EACCES|Error: Route/);
     } finally {
       if (server.exitCode === null) {

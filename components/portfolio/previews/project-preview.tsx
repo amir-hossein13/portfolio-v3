@@ -1,3 +1,12 @@
+import {
+  AiOutlineArrowRight,
+  AiOutlineClockCircle,
+  AiOutlineCloud,
+  AiOutlineHeart,
+  AiOutlineHome,
+  AiOutlineSun,
+} from "react-icons/ai";
+
 export function ProjectPreview({ kind }: { kind: string }) {
   if (kind === "wellness") {
     return (
@@ -19,9 +28,9 @@ export function ProjectPreview({ kind }: { kind: string }) {
           <div className="mx-auto h-1 w-8 rounded-full bg-[#5c4755]" />
           <div className="mt-3 text-[8px]">How are you feeling?</div>
           <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[12px]">
-            <span>☀</span>
-            <span>☁</span>
-            <span>♡</span>
+            <AiOutlineSun className="mx-auto size-3" />
+            <AiOutlineCloud className="mx-auto size-3" />
+            <AiOutlineHeart className="size-3" />
           </div>
           <div className="mt-3 rounded-md bg-[#e5cbdf] p-2 text-[7px]">
             Small steps,
@@ -91,7 +100,9 @@ export function ProjectPreview({ kind }: { kind: string }) {
         <div className="min-w-0 flex-1 pl-4 sm:pl-6">
           <div className="flex justify-between text-[9px]">
             <span>Overview</span>
-            <span className="text-white/30">This month ↗</span>
+            <span className="inline-flex items-center gap-1 text-white/30">
+              This month <AiOutlineArrowRight className="size-2.5 -rotate-45" />
+            </span>
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2">
             {["Activity", "Growth", "Overview"].map((label, i) => (
@@ -101,7 +112,12 @@ export function ProjectPreview({ kind }: { kind: string }) {
               >
                 <span>{label}</span>
                 <div className="mt-2 h-2 w-2/3 rounded bg-[#b9a4ef]/70" />
-                <div className="mt-2 text-[#bdadc9]">{["↗", "↑", "↗"][i]} This month</div>
+                <div className="mt-2 flex items-center gap-1 text-[#bdadc9]">
+                  <AiOutlineArrowRight
+                    className={`size-2 ${i === 1 ? "-rotate-90" : "-rotate-45"}`}
+                  />{" "}
+                  This month
+                </div>
               </div>
             ))}
           </div>
@@ -138,7 +154,7 @@ export function ProjectPreview({ kind }: { kind: string }) {
           <div className="mx-auto h-1 w-9 rounded-full bg-black" />
           <div className="mt-5 flex justify-between text-[7px]">
             <span>Good morning</span>
-            <span>↗</span>
+            <AiOutlineArrowRight className="size-2.5 -rotate-45" />
           </div>
           <div className="mt-4 text-[9px] text-[#a4c9ae]">Your daily balance</div>
           <div className="mt-1 text-[23px] tracking-tight">
@@ -153,9 +169,9 @@ export function ProjectPreview({ kind }: { kind: string }) {
             </div>
           </div>
           <div className="mt-5 flex justify-between text-[11px] text-[#a4c9ae]">
-            <span>⌂</span>
-            <span>◷</span>
-            <span>♡</span>
+            <AiOutlineHome className="size-3" />
+            <AiOutlineClockCircle className="size-3" />
+            <AiOutlineHeart className="size-3" />
           </div>
         </div>
       ))}

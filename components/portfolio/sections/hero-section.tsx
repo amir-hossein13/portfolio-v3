@@ -1,17 +1,22 @@
 "use client";
 
 import Image from "next/image";
+import { AiOutlineCamera } from "react-icons/ai";
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from "react";
-import type { Profile, PublicPortfolio } from "@/types/portfolio";
+import type { Profile, PublicPortfolio, SectionId } from "@/types/portfolio";
 import { ActionLink, Availability } from "../ui";
 import { SocialLinks } from "../social-links";
+import { usePortfolioLanguage } from "../portfolio-language";
+import { LanguageSwitcher } from "../language-switcher";
 
 interface HeroSectionProps {
   profile: Profile;
   navigation: PublicPortfolio["navigation"];
+  currentSection: SectionId;
 }
 
-export function HeroSection({ profile, navigation }: HeroSectionProps) {
+export function HeroSection({ profile, navigation, currentSection }: HeroSectionProps) {
+  const { copy } = usePortfolioLanguage();
   const [photo, setPhoto] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const portraitRef = useRef<HTMLDivElement>(null);
@@ -60,19 +65,19 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
       data-slide
       tabIndex={-1}
       id="home"
-      className="relative isolate grid h-dvh grid-cols-1 grid-rows-[auto_auto_minmax(160px,1fr)_auto_auto] overflow-x-clip overflow-y-auto bg-white pb-16 focus-visible:outline-none hero:block hero:overflow-hidden hero:pb-0"
+      className="relative isolate grid h-svh grid-cols-1 grid-rows-[auto_auto_minmax(160px,1fr)_auto_auto] overflow-x-clip overflow-y-auto bg-white pb-16 focus-visible:outline-none hero:block hero:h-dvh hero:overflow-hidden hero:pb-0"
       aria-labelledby="portfolio-name"
       onPointerMove={movePortrait}
       onPointerLeave={resetPortraitPosition}
     >
       <header
         data-enter
-        className="relative z-10 grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-5 px-3 pt-5 pb-4 sm:px-8 hero:h-[104px] hero:grid-cols-[auto_1fr_auto] hero:gap-[clamp(35px,5cqw,85px)] hero:px-[4.2%] hero:py-0"
+        className="relative z-10 grid grid-cols-[1fr_auto] items-center gap-x-1 gap-y-5 px-3 pt-5 pb-4 sm:gap-x-2 sm:px-8 hero:h-[104px] hero:grid-cols-[auto_1fr_auto] hero:gap-[clamp(16px,2.5cqw,48px)] hero:px-[4.2%] hero:py-0"
       >
         <Availability compact text={profile.availability} />
         <nav
           className="col-span-full row-start-2 flex items-center justify-center gap-[clamp(14px,4cqw,40px)] hero:col-auto hero:row-auto hero:justify-between hero:gap-4"
-          aria-label="Main navigation"
+          aria-label={copy.navigation.main}
         >
           {navigation.map((item) => (
             <a
@@ -81,7 +86,7 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
               href={`#${item.id}`}
             >
               <span className="relative after:absolute after:inset-x-0 after:-bottom-1 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-300 group-hover:after:scale-x-100">
-                {item.label}
+                {copy.sections[item.id]}
               </span>
               {item.count && (
                 <span className="text-[9px] text-[#adadad] sm:text-[10px]">[{item.count}]</span>
@@ -89,15 +94,18 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
             </a>
           ))}
         </nav>
-        <div className="col-start-2 row-start-1 justify-self-end hero:col-start-3">
-          <ActionLink compact>Let&apos;s Talk</ActionLink>
+        <div className="col-start-2 row-start-1 flex items-center gap-1 justify-self-end sm:gap-3 hero:col-start-3">
+          <LanguageSwitcher section={currentSection} />
+          <ActionLink compact>{copy.hero.talk}</ActionLink>
         </div>
       </header>
 
       <h1
         data-enter
         id="portfolio-name"
-        className="relative z-0 m-0 flex items-baseline justify-between gap-[.13em] px-[5.1%] pt-6 pb-0 font-display text-[calc(12.75cqw*var(--name-scale))] leading-none tracking-[.012em] whitespace-nowrap uppercase hero:absolute hero:inset-x-0 hero:top-[22.5%] hero:gap-[.2em] hero:pt-0 hero:text-[min(calc(13.05cqw*var(--name-scale)),21dvh)]"
+        dir="ltr"
+        lang="en"
+        className="relative z-0 m-0 flex items-baseline justify-between gap-[.13em] px-[5.1%] pt-6 pb-0 font-latin text-[calc(12.75cqw*var(--name-scale))] leading-none tracking-[.012em] whitespace-nowrap uppercase hero:absolute hero:inset-x-0 hero:top-[22.5%] hero:gap-[.2em] hero:pt-0 hero:text-[min(calc(13.05cqw*var(--name-scale)),21dvh)]"
       >
         <span className="text-outline font-[690] text-transparent">{profile.firstName}</span>
         <span className="font-[850] text-display">{profile.lastName}</span>
@@ -112,7 +120,7 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
           <Image
             className="hero-portrait object-contain object-bottom"
             src={portraitSrc || "/portrait-placeholder.svg"}
-            alt={portraitSrc ? profile.portrait.alt : "Silhouette placeholder for your portrait"}
+            alt={portraitSrc ? profile.portrait.alt : copy.hero.placeholder}
             fill
             loading="eager"
             sizes="(max-width: 600px) 100vw, (max-width: 900px) 560px, (max-width: 1550px) 62vw, 960px"
@@ -124,20 +132,10 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
               type="button"
               onClick={() => inputRef.current?.click()}
             >
-              <svg
-                className="size-5 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.3"
-                aria-hidden="true"
-              >
-                <path d="M8 6 9.5 4h5L16 6h4v14H4V6h4Z" strokeLinejoin="round" />
-                <circle cx="12" cy="12" r="3.5" />
-              </svg>
+              <AiOutlineCamera className="size-5 shrink-0" aria-hidden="true" focusable="false" />
               <span>
-                Your portrait here
-                <span className="mt-0.5 block text-[10px] text-[#777]">Add your photo ↗</span>
+                {copy.hero.portrait}
+                <span className="mt-0.5 block text-[10px] text-[#777]">{copy.hero.addPhoto}</span>
               </span>
             </button>
           )}
@@ -147,7 +145,7 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
               type="button"
               onClick={() => setPhoto("")}
             >
-              Reset preview
+              {copy.hero.reset}
             </button>
           )}
           <input
@@ -155,7 +153,7 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
             className="sr-only"
             type="file"
             accept="image/*"
-            aria-label="Choose a portrait to preview"
+            aria-label={copy.hero.choosePhoto}
             tabIndex={-1}
             onChange={previewPortrait}
           />
@@ -164,7 +162,7 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
 
       <div
         data-enter
-        className="relative z-[2] border-t border-[#f0f0f0] bg-white px-6 pt-5 pb-5 sm:px-8 hero:absolute hero:bottom-[14%] hero:left-[7.4%] hero:w-[25%] hero:max-w-[310px] hero:border-0 hero:bg-transparent hero:p-0"
+        className="relative z-[2] border-t border-[#f0f0f0] bg-white px-6 pt-5 pb-5 sm:px-8 hero:absolute hero:bottom-[14%] hero:start-[7.4%] hero:w-[25%] hero:max-w-[310px] hero:border-0 hero:bg-transparent hero:p-0"
       >
         <h2 className="m-0 mb-3 font-sans text-[clamp(24px,7.8cqw,28px)] leading-[1.2] font-semibold tracking-[-.025em] hero:text-[clamp(24px,2.05cqw,32px)]">
           {profile.role}
@@ -174,13 +172,13 @@ export function HeroSection({ profile, navigation }: HeroSectionProps) {
             {profile.description}
           </p>
         )}
-        <ActionLink>Let&apos;s collaborate</ActionLink>
+        <ActionLink>{copy.hero.collaborate}</ActionLink>
       </div>
 
       <nav
         data-enter
-        className="relative z-[2] grid grid-cols-2 gap-2 px-6 sm:px-8 hero:absolute hero:right-[5.5%] hero:bottom-[8%] hero:flex hero:flex-col hero:gap-[18px] hero:p-0"
-        aria-label="Social profiles"
+        className="relative z-[2] grid grid-cols-2 gap-2 px-6 sm:px-8 hero:absolute hero:end-[5.5%] hero:bottom-[8%] hero:flex hero:flex-col hero:gap-[18px] hero:p-0"
+        aria-label={copy.hero.socials}
       >
         <SocialLinks socials={profile.socials} />
       </nav>

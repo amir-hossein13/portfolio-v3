@@ -111,4 +111,4 @@ export const portfolioContent: PortfolioContent = {
 };
 
 // Keep this date in sync when changing content; used by the sitemap and structured data.
-export const portfolioUpdatedAt = "2026-10-17T00:00:00.000Z";
+export const portfolioUpdatedAt = "2026-10-20T00:00:00.000Z";

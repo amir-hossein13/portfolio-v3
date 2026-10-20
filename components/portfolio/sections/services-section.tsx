@@ -1,17 +1,20 @@
 "use client";
 import { useState } from "react";
+import { AiOutlineClose } from "react-icons/ai";
 import type { Service } from "@/types/portfolio";
 import { ArrowIcon } from "../ui";
 import { ProjectPreview } from "../previews/project-preview";
+import { usePortfolioLanguage } from "../portfolio-language";
 
 export function ServicesSection({ services }: { services: Service[] }) {
+  const { copy } = usePortfolioLanguage();
   const [activeService, setActiveService] = useState<number | null>(0);
   return (
     <section
       data-slide
       tabIndex={-1}
       id="service"
-      className="flex h-dvh flex-col justify-center overflow-y-auto bg-[#f8f8f8] px-6 pt-[clamp(32px,6dvh,80px)] pb-20 focus-visible:outline-none sm:px-10 hero:px-[8%]"
+      className="flex min-h-svh hero:h-dvh flex-col [justify-content:safe_center] hero:overflow-y-auto bg-[#f8f8f8] px-6 pt-[clamp(32px,6dvh,80px)] pb-20 focus-visible:outline-none sm:px-10 hero:px-[8%]"
       aria-labelledby="service-title"
     >
       <h2
@@ -19,7 +22,7 @@ export function ServicesSection({ services }: { services: Service[] }) {
         id="service-title"
         className="m-0 mb-8 shrink-0 font-sans text-[clamp(30px,3.7cqw,48px)] leading-none font-medium tracking-[-.04em]"
       >
-        /SERVICE
+        {copy.services.title}
       </h2>
       <div className="border-t border-black/15">
         {services.map((service, index) => {
@@ -35,15 +38,17 @@ export function ServicesSection({ services }: { services: Service[] }) {
                 aria-expanded={expanded}
                 aria-controls={`service-detail-${index}`}
                 onClick={() => setActiveService(expanded ? null : index)}
-                className="group flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-[clamp(18px,3dvh,28px)] text-left sm:px-6"
+                className="group flex w-full cursor-pointer items-center justify-between gap-4 px-4 py-[clamp(18px,3dvh,28px)] text-start sm:px-6"
               >
-                <h3 className="m-0 font-sans text-[clamp(23px,3.7cqw,48px)] leading-[1.1] font-normal tracking-[-.045em] text-inherit">
+                <h3 className="m-0 font-sans text-[clamp(23px,3.7cqw,48px)] leading-[1.1] font-normal tracking-[-.045em] text-inherit hero:max-w-[65%]">
                   {service.title}
                 </h3>
                 {expanded ? (
-                  <span className="pr-1 text-[35px] leading-none font-light" aria-hidden="true">
-                    ×
-                  </span>
+                  <AiOutlineClose
+                    className="size-7 shrink-0 sm:size-8"
+                    aria-hidden="true"
+                    focusable="false"
+                  />
                 ) : (
                   <ArrowIcon className="size-7 sm:size-8" />
                 )}
@@ -59,8 +64,10 @@ export function ServicesSection({ services }: { services: Service[] }) {
                       {service.description}
                     </p>
                     {expanded && (
-                      <div className="absolute -top-3 right-[8%] hidden h-[clamp(100px,18dvh,170px)] w-[28%] rotate-[7deg] overflow-hidden border-[7px] border-[#fafafa] shadow-xl hero:block">
-                        <ProjectPreview kind={service.preview} />
+                      <div className="absolute -top-3 end-[8%] hidden h-[clamp(100px,18dvh,170px)] w-[28%] rotate-[7deg] overflow-hidden border-[7px] border-[#fafafa] shadow-xl hero:block">
+                        <div dir="ltr" className="h-full">
+                          <ProjectPreview kind={service.preview} />
+                        </div>
                       </div>
                     )}
                   </div>

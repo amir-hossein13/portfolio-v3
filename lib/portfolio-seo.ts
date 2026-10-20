@@ -1,6 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
 import type { PortfolioSnapshot, Profile } from "@/types/portfolio";
+import type { Locale } from "@/data/locales/en";
 
 export function siteOrigin(profile: Profile): string | undefined {
   const value = process.env.PORTFOLIO_ORIGIN || profile.siteUrl;
@@ -22,7 +23,7 @@ export function siteOrigin(profile: Profile): string | undefined {
   }
 }
 
-export function portfolioMetadata(profile: Profile): Metadata {
+export function portfolioMetadata(profile: Profile, locale: Locale = "en"): Metadata {
   const name = `${profile.firstName} ${profile.lastName}`;
   const title = profile.seoTitle || `${name} — ${profile.role}`;
   const description =
@@ -30,6 +31,7 @@ export function portfolioMetadata(profile: Profile): Metadata {
     profile.description ||
     `Explore the projects, services, and experience of ${name}, ${profile.role}. Get in touch to discuss your next web project.`;
   const origin = siteOrigin(profile);
+  const path = locale === "ar" ? "/ar" : "/";
   const image = origin
     ? [
         {
@@ -46,7 +48,15 @@ export function portfolioMetadata(profile: Profile): Metadata {
     applicationName: `${name} Portfolio`,
     authors: [{ name, ...(origin ? { url: origin } : {}) }],
     creator: name,
-    ...(origin ? { metadataBase: new URL(origin), alternates: { canonical: `${origin}/` } } : {}),
+    ...(origin
+      ? {
+          metadataBase: new URL(origin),
+          alternates: {
+            canonical: `${origin}${path}`,
+            languages: { en: `${origin}/`, ar: `${origin}/ar`, "x-default": `${origin}/` },
+          },
+        }
+      : {}),
     robots: {
       index: Boolean(origin),
       follow: Boolean(origin),
@@ -63,10 +73,11 @@ export function portfolioMetadata(profile: Profile): Metadata {
       title,
       description,
       siteName: `${name} Portfolio`,
-      locale: "en_US",
+      locale: locale === "ar" ? "ar_AR" : "en_US",
+      alternateLocale: locale === "ar" ? ["en_US"] : ["ar_AR"],
       firstName: profile.firstName,
       lastName: profile.lastName,
-      ...(origin ? { url: `${origin}/`, images: image } : {}),
+      ...(origin ? { url: `${origin}${path}`, images: image } : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -80,11 +91,15 @@ export function portfolioMetadata(profile: Profile): Metadata {
   };
 }
 
-export function portfolioStructuredData({ content, updatedAt }: PortfolioSnapshot) {
+export function portfolioStructuredData(
+  { content, updatedAt }: PortfolioSnapshot,
+  locale: Locale = "en",
+) {
   const { profile } = content;
   const origin = siteOrigin(profile);
   const name = `${profile.firstName} ${profile.lastName}`;
   const personId = origin ? `${origin}/#person` : "#person";
+  const path = locale === "ar" ? "/ar" : "/";
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -104,11 +119,12 @@ export function portfolioStructuredData({ content, updatedAt }: PortfolioSnapsho
       },
       {
         "@type": "ProfilePage",
-        "@id": origin ? `${origin}/#profile` : "#profile",
+        "@id": origin ? `${origin}${path}#profile` : "#profile",
         name: `${name} — ${profile.role}`,
+        inLanguage: locale,
         dateModified: updatedAt,
         mainEntity: { "@id": personId },
-        ...(origin ? { url: `${origin}/`, isPartOf: { "@id": `${origin}/#website` } } : {}),
+        ...(origin ? { url: `${origin}${path}`, isPartOf: { "@id": `${origin}/#website` } } : {}),
       },
       ...(origin
         ? [
@@ -117,7 +133,7 @@ export function portfolioStructuredData({ content, updatedAt }: PortfolioSnapsho
               "@id": `${origin}/#website`,
               url: `${origin}/`,
               name: `${name} Portfolio`,
-              inLanguage: "en",
+              inLanguage: ["en", "ar"],
               publisher: { "@id": personId },
             },
           ]

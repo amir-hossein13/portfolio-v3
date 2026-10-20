@@ -19,7 +19,7 @@ export function SocialLinks({ socials, footer = false }: SocialLinksProps) {
         rel="noopener noreferrer"
       >
         <SocialIcon name={social.name} />
-        {social.name}
+        <bdi>{social.name}</bdi>
       </a>
     ));
 }
