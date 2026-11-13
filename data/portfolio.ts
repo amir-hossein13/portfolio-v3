@@ -9,7 +9,7 @@ export const portfolioContent: PortfolioContent = {
     description: "",
     availability: "Available for new projects",
     email: "amirattarnia7@gmail.com",
-    portrait: { src: "/img/face.png", alt: "Amir.H Attarnia" },
+    portrait: { src: "/img/face.webp", alt: "Amir.H Attarnia" },
     phone: "+989934904062",
     whatsapp: "+989934904062",
     siteUrl: "",
